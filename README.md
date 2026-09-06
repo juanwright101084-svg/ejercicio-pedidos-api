@@ -1,58 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Ejercicio Pedidos API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API REST para un sistema de e-commerce básico desarrollada con **Laravel 12**, que permite gestionar clientes, un catálogo de productos, y procesar compras mediante la pasarela de pago **Stripe**. Incluye autenticación robusta con **JWT** y documentación completa vía **Swagger/OpenAPI**.
 
-## About Laravel
+## Características
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- CRUD completo de productos y categorías (lectura pública, escritura protegida)
+- Registro y autenticación de usuarios con JWT (`tymon/jwt-auth`)
+- Creación de órdenes con múltiples productos, cálculo automático de totales y control de stock
+- Procesamiento de pagos mediante Stripe (`stripe/stripe-php`)
+- Historial de compras por usuario autenticado
+- Documentación interactiva con Swagger UI
+- Validaciones mediante Form Requests
+- Manejo de errores consistente en formato JSON (401, 404, 422, 402)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requisitos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.2 o superior
+- Composer
+- MySQL
+- Una cuenta de [Stripe](https://dashboard.stripe.com/register) (modo de prueba)
 
-## Learning Laravel
+## Instalación
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+1. Clona el repositorio:
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+   git clone https://github.com/juanwright101084-svg/ejercicio-pedidos-api.git
+   cd ejercicio-pedidos-api
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+2. Instala las dependencias:
+```bash
+   composer install
+```
 
-## Contributing
+3. Copia el archivo de entorno y genera la clave de aplicación:
+```bash
+   copy .env.example .env
+   php artisan key:generate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+4. Crea una base de datos MySQL vacía (por ejemplo, `ejercicio_pedidos`) y configura las credenciales en tu `.env`:
+```dotenv
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=ejercicio_pedidos
+   DB_USERNAME=root
+   DB_PASSWORD=
+```
 
-## Code of Conduct
+5. Genera la clave secreta de JWT:
+```bash
+   php artisan jwt:secret
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+6. Configura tus claves de Stripe (modo de prueba) en el `.env`:
+```dotenv
+   STRIPE_KEY=pk_test_tu_clave_publicable
+   STRIPE_SECRET=sk_test_tu_clave_secreta
+```
+   Puedes obtenerlas en [dashboard.stripe.com/test/apikeys](https://dashboard.stripe.com/test/apikeys).
 
-## Security Vulnerabilities
+7. Corre las migraciones y los seeders:
+```bash
+   php artisan migrate
+   php artisan db:seed
+```
+   Esto crea un usuario administrador de prueba, 5 categorías y 10 productos de ejemplo.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+8. Genera la documentación de Swagger:
+```bash
+   php artisan l5-swagger:generate
+```
 
-## License
+9. Levanta el servidor:
+```bash
+   php artisan serve
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Documentación de la API
+
+Una vez el servidor esté corriendo, accede a la documentación interactiva en:http://127.0.0.1:8000/api/documentation
+
+Desde ahí puedes probar todos los endpoints directamente, incluyendo los protegidos (usando el botón **Authorize** con un token JWT).
+
+## Usuario de prueba (creado por el seeder)
+
+Email: juan@test.com
+Password: password123
+Rol: admin
+
+
+## Flujo de uso típico
+
+1. **Login** — `POST /api/jwt/login` con el usuario de prueba, obtén tu token
+2. **Explora el catálogo** — `GET /api/products` (público, no requiere token)
+3. **Crea una orden** — `POST /api/orders` (requiere token), incluyendo un `client_id` y un arreglo de `items` con `product_id` y `quantity`
+4. **Procesa el pago** — `POST /api/payments` con el `order_id` de la orden creada. Usa `pm_card_visa` como `payment_method` para simular una tarjeta de prueba exitosa
+5. **Consulta tu historial** — `GET /api/my-orders` (requiere token)
+
+## Endpoints principales
+
+| Método | Ruta | Descripción | Auth |
+|---|---|---|---|
+| POST | `/api/register` | Registro de usuario | No |
+| POST | `/api/jwt/login` | Login (JWT) | No |
+| GET | `/api/jwt/me` | Usuario autenticado actual | Sí |
+| POST | `/api/jwt/logout` | Cerrar sesión | Sí |
+| GET | `/api/products` | Listado de productos | No |
+| GET | `/api/products/{id}` | Detalle de un producto | No |
+| POST | `/api/products` | Crear producto | Sí |
+| PUT | `/api/products/{id}` | Actualizar producto | Sí |
+| DELETE | `/api/products/{id}` | Eliminar producto | Sí |
+| GET/POST/PUT/DELETE | `/api/categories` | CRUD de categorías | Mixto |
+| GET/POST/PUT/DELETE | `/api/orders` | CRUD de órdenes | Sí |
+| POST | `/api/payments` | Procesar pago de una orden | Sí |
+| GET | `/api/my-orders` | Historial de compras del usuario | Sí |
+
+## Notas de seguridad
+
+- Las contraseñas se almacenan hasheadas (Bcrypt) mediante el cast nativo de Laravel.
+- Los endpoints de escritura (crear, editar, eliminar) requieren un token JWT válido.
+- El endpoint de pagos calcula el monto a cobrar en el servidor (a partir del total real de la orden), nunca confía en un monto enviado por el cliente.
+- Las tarjetas de prueba de Stripe (`pm_card_visa`, entre otras) permiten simular pagos exitosos y rechazados sin usar dinero real.
+
+## Tecnologías
+
+- Laravel 12
+- MySQL
+- `tymon/jwt-auth` — autenticación JWT
+- `stripe/stripe-php` — procesamiento de pagos
+- `darkaonline/l5-swagger` — documentación OpenAPI
