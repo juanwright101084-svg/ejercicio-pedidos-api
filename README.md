@@ -1,15 +1,16 @@
 # Ejercicio Pedidos API
 
-API REST para un sistema de e-commerce básico desarrollada con **Laravel 12**, que permite gestionar clientes, un catálogo de productos, y procesar compras mediante la pasarela de pago **Stripe**. Incluye autenticación robusta con **JWT** y documentación completa vía **Swagger/OpenAPI**.
+API REST para un sistema de e-commerce básico desarrollada con **Laravel**, que permite gestionar clientes, un catálogo de productos, y procesar compras mediante la pasarela de pago **Stripe**. Incluye autenticación robusta con **JWT** y documentación completa vía **Swagger/OpenAPI**.
 
 ## Características
 
 - CRUD completo de productos y categorías (lectura pública, escritura protegida)
 - Registro y autenticación de usuarios con JWT (`tymon/jwt-auth`)
 - Creación de órdenes con múltiples productos, cálculo automático de totales y control de stock
+- Órdenes protegidas por propietario: cada usuario solo puede ver, editar o eliminar sus propias órdenes
 - Procesamiento de pagos mediante Stripe (`stripe/stripe-php`)
 - Historial de compras por usuario autenticado
-- Documentación interactiva con Swagger UI
+- Documentación interactiva con Swagger UI (Auth, Orders, Payments, Products)
 - Validaciones mediante Form Requests
 - Manejo de errores consistente en formato JSON (401, 404, 422, 402)
 
@@ -66,7 +67,7 @@ API REST para un sistema de e-commerce básico desarrollada con **Laravel 12**, 
    php artisan migrate
    php artisan db:seed
 ```
-   Esto crea un usuario administrador de prueba, 5 categorías y 10 productos de ejemplo.
+   Esto crea un usuario administrador de prueba, 5 categorías, 10 productos, y 3 clientes de ejemplo.
 
 8. Genera la documentación de Swagger:
 ```bash
@@ -80,24 +81,36 @@ API REST para un sistema de e-commerce básico desarrollada con **Laravel 12**, 
 
 ## Documentación de la API
 
-Una vez el servidor esté corriendo, accede a la documentación interactiva en:http://127.0.0.1:8000/api/documentation
+Una vez el servidor esté corriendo, accede a la documentación interactiva en:
+
+http://127.0.0.1:8000/api/documentation
+
 
 Desde ahí puedes probar todos los endpoints directamente, incluyendo los protegidos (usando el botón **Authorize** con un token JWT).
 
-## Usuario de prueba (creado por el seeder)
+## Datos de prueba (creados por el seeder)
 
+**Usuario administrador:**
 Email: juan@test.com
 Password: password123
 Rol: admin
+
+
+**Clientes de ejemplo** (usa cualquiera de sus `id` al crear una orden):
+
+Cliente Prueba — cliente@test.com
+Ana Perez — ana@test.com
+Carlos Rodriguez — carlos@test.com
 
 
 ## Flujo de uso típico
 
 1. **Login** — `POST /api/jwt/login` con el usuario de prueba, obtén tu token
 2. **Explora el catálogo** — `GET /api/products` (público, no requiere token)
-3. **Crea una orden** — `POST /api/orders` (requiere token), incluyendo un `client_id` y un arreglo de `items` con `product_id` y `quantity`
+3. **Crea una orden** — `POST /api/orders` (requiere token), usando el `id` de uno de los clientes de ejemplo y un arreglo de `items` con `product_id` y `quantity`
 4. **Procesa el pago** — `POST /api/payments` con el `order_id` de la orden creada. Usa `pm_card_visa` como `payment_method` para simular una tarjeta de prueba exitosa
 5. **Consulta tu historial** — `GET /api/my-orders` (requiere token)
+6. **Consulta tus órdenes** — `GET /api/orders` (requiere token; solo muestra las órdenes creadas por el usuario autenticado)
 
 ## Endpoints principales
 
@@ -113,7 +126,7 @@ Rol: admin
 | PUT | `/api/products/{id}` | Actualizar producto | Sí |
 | DELETE | `/api/products/{id}` | Eliminar producto | Sí |
 | GET/POST/PUT/DELETE | `/api/categories` | CRUD de categorías | Mixto |
-| GET/POST/PUT/DELETE | `/api/orders` | CRUD de órdenes | Sí |
+| GET/POST/PUT/DELETE | `/api/orders` | CRUD de órdenes (solo propias) | Sí |
 | POST | `/api/payments` | Procesar pago de una orden | Sí |
 | GET | `/api/my-orders` | Historial de compras del usuario | Sí |
 
@@ -121,12 +134,13 @@ Rol: admin
 
 - Las contraseñas se almacenan hasheadas (Bcrypt) mediante el cast nativo de Laravel.
 - Los endpoints de escritura (crear, editar, eliminar) requieren un token JWT válido.
+- Las órdenes están protegidas por propietario: un usuario no puede ver, editar ni eliminar las órdenes de otro usuario (se devuelve 404, no 403, para no revelar la existencia de la orden ajena).
 - El endpoint de pagos calcula el monto a cobrar en el servidor (a partir del total real de la orden), nunca confía en un monto enviado por el cliente.
 - Las tarjetas de prueba de Stripe (`pm_card_visa`, entre otras) permiten simular pagos exitosos y rechazados sin usar dinero real.
 
 ## Tecnologías
 
-- Laravel 12
+- Laravel
 - MySQL
 - `tymon/jwt-auth` — autenticación JWT
 - `stripe/stripe-php` — procesamiento de pagos
