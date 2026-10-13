@@ -23,6 +23,7 @@ class OrderResource extends JsonResource
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
                 'product_id' => $item->product_id,
                 'product_name' => $item->product->name,
+                'product_image' => $item->product->image,   // ← NUEVA LÍNEA
                 'quantity' => $item->quantity,
                 'unit_price' => $item->unit_price,
                 'subtotal' => $item->quantity * $item->unit_price,

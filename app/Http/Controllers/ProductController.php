@@ -5,18 +5,50 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use OpenApi\Attributes as OA;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * Soporta filtros: ?search=, ?category_id=, ?featured=, ?limit=
      */
     #[OA\Get(
         path: "/products",
-        summary: "Listar todos los productos",
+        summary: "Listar todos los productos (con búsqueda y filtros opcionales)",
         tags: ["Products"],
-        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(
+                name: "search",
+                in: "query",
+                required: false,
+                description: "Buscar por nombre de producto",
+                schema: new OA\Schema(type: "string")
+            ),
+            new OA\Parameter(
+                name: "category_id",
+                in: "query",
+                required: false,
+                description: "Filtrar por categoría",
+                schema: new OA\Schema(type: "integer")
+            ),
+            new OA\Parameter(
+                name: "featured",
+                in: "query",
+                required: false,
+                description: "Solo productos destacados (1 = sí)",
+                schema: new OA\Schema(type: "boolean")
+            ),
+            new OA\Parameter(
+                name: "limit",
+                in: "query",
+                required: false,
+                description: "Limitar número de resultados",
+                schema: new OA\Schema(type: "integer")
+            ),
+        ],
         responses: [
             new OA\Response(
                 response: 200,
@@ -28,9 +60,34 @@ class ProductController extends Controller
             ),
         ]
     )]
-    public function index()
+    public function index(Request $request)
     {
-        return ProductResource::collection(Product::with('category')->get());
+        $query = Product::with('category');
+
+        // 🔍 Búsqueda por nombre (case-insensitive)
+        if ($search = $request->query('search')) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        // 🏷️ Filtro por categoría
+        if ($categoryId = $request->query('category_id')) {
+            $query->where('category_id', $categoryId);
+        }
+
+        // ⭐ Solo productos destacados
+        if ($request->boolean('featured')) {
+            $query->where('is_featured', true);
+        }
+
+        // 🔢 Límite opcional (útil para dropdown del navbar)
+        if ($limit = $request->query('limit')) {
+            $query->limit((int) $limit);
+        }
+
+        // Ordenar por los más recientes primero
+        $query->latest();
+
+        return ProductResource::collection($query->get());
     }
 
     /**
@@ -56,9 +113,18 @@ class ProductController extends Controller
     )]
     public function store(StoreProductRequest $request)
     {
-        $product = Product::create($request->validated());
+        $data = $request->validated();
 
-        return new ProductResource($product->load('category'));
+        // Maneja la carga de imagen
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        $product = Product::create($data);
+
+        return (new ProductResource($product->load('category')))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -68,9 +134,13 @@ class ProductController extends Controller
         path: "/products/{id}",
         summary: "Obtener un producto por ID",
         tags: ["Products"],
-        security: [["bearerAuth" => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
         ],
         responses: [
             new OA\Response(
@@ -95,7 +165,12 @@ class ProductController extends Controller
         tags: ["Products"],
         security: [["bearerAuth" => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
         ],
         requestBody: new OA\RequestBody(
             required: true,
@@ -113,7 +188,18 @@ class ProductController extends Controller
     )]
     public function update(StoreProductRequest $request, Product $product)
     {
-        $product->update($request->validated());
+        $data = $request->validated();
+
+        // Maneja la carga de imagen
+        if ($request->hasFile('image')) {
+            // Elimina imagen anterior si existe
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $data['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        $product->update($data);
 
         return new ProductResource($product->load('category'));
     }
@@ -127,7 +213,12 @@ class ProductController extends Controller
         tags: ["Products"],
         security: [["bearerAuth" => []]],
         parameters: [
-            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(
+                name: "id",
+                in: "path",
+                required: true,
+                schema: new OA\Schema(type: "integer")
+            ),
         ],
         responses: [
             new OA\Response(response: 204, description: "Producto eliminado"),
@@ -136,6 +227,11 @@ class ProductController extends Controller
     )]
     public function destroy(Product $product)
     {
+        // Elimina la imagen si existe
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
+        }
+
         $product->delete();
 
         return response()->noContent();

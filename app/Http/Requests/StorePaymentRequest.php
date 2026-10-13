@@ -8,14 +8,13 @@ class StorePaymentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return true; // La ruta debe estar protegida con auth:api.
     }
 
     public function rules(): array
     {
         return [
-            'order_id' => ['required', 'exists:orders,id'],
-            'payment_method' => ['nullable', 'string'],
+            'order_id' => ['required', 'integer', 'exists:orders,id'],
         ];
     }
 }

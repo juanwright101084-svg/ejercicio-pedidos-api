@@ -10,19 +10,16 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Juan Guzman',
-            'email' => 'juan@test.com',
-            'password' => 'password123', // el cast 'hashed' la hashea sola
-            'role' => 'admin',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'juan@test.com'],
+            [
+                'name' => 'Juan Guzman',
+                'password' => 'password123',
+                'role' => 'admin',
+            ]
+        );
 
         $this->call([
             CategorySeeder::class,

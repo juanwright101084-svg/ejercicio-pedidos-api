@@ -18,13 +18,33 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: "stock", type: "integer", example: 100),
         new OA\Property(property: "is_featured", type: "boolean", example: true),
         new OA\Property(property: "category_id", type: "integer", example: 1),
+        new OA\Property(
+            property: "image_url",
+            type: "string",
+            nullable: true,
+            example: "http://127.0.0.1:8000/api/productos/coca-cola.jpg"
+        ),
     ]
 )]
 class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'price', 'stock', 'is_featured', 'category_id'];
+    protected $fillable = [
+        'name',
+        'price',
+        'stock',
+        'is_featured',
+        'category_id',
+        'image',
+    ];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        return $this->image ? url('/api/productos/' . $this->image) : null;
+    }
 
     public function category(): BelongsTo
     {

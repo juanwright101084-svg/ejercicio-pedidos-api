@@ -2,13 +2,15 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\JwtAuthController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// ============================================
+// Autenticación (Sanctum)
+// ============================================
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -21,35 +23,45 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/change-password', [AuthController::class, 'changePassword']);
 });
 
-Route::prefix('jwt')->group(function () {
-    Route::post('/login', [JwtAuthController::class, 'login']);
-
-    Route::middleware('auth:api')->group(function () {
-        Route::get('/me', [JwtAuthController::class, 'me']);
-        Route::post('/logout', [JwtAuthController::class, 'logout']);
-        Route::post('/refresh', [JwtAuthController::class, 'refresh']);
-        Route::get('/admin-only', [JwtAuthController::class, 'adminOnly']);
-    });
-});
-
-// Listado público de productos y categorías (sin autenticación)
+// ============================================
+// Rutas públicas (productos, categorías, imágenes)
+// ============================================
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 
-// Rutas protegidas con JWT
-Route::middleware('auth:api')->group(function () {
+// Servir imágenes de productos (público)
+Route::get('/productos/{filename}', function ($filename) {
+    $path = storage_path('app/public/productos/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path, [
+        'Content-Type' => mime_content_type($path),
+    ]);
+})->where('filename', '.*');
+
+// ============================================
+// Rutas protegidas (requieren autenticación Sanctum)
+// ============================================
+Route::middleware('auth:sanctum')->group(function () {
+    // Productos (admin)
     Route::post('/products', [ProductController::class, 'store']);
     Route::put('/products/{product}', [ProductController::class, 'update']);
     Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 
+    // Categorías (admin)
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
+    // Órdenes
     Route::apiResource('orders', OrderController::class);
 
+    // Pagos con Stripe
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::get('/my-orders', [PaymentController::class, 'myOrders']);
 });

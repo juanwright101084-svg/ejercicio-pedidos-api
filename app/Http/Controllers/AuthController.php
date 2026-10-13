@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Models\Client;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -35,16 +36,29 @@ class AuthController extends Controller
     )]
     public function register(RegisterRequest $request)
     {
+        // Crear Client primero
+        $client = Client::create([
+            'name' => $request->name,
+            'email' => $request->email,
+        ]);
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => $request->password, // el cast 'hashed' lo hashea solo
+            'password' => $request->password,
+            'client_id' => $client->id,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role ?? 'user',
+                'client_id' => $user->client_id,
+            ],
             'token' => $token,
         ], 201);
     }
@@ -81,7 +95,13 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role ?? 'user',
+                'client_id' => $user->client_id,
+            ],
             'token' => $token,
         ]);
     }

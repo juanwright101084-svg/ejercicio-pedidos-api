@@ -7,23 +7,28 @@ use Illuminate\Validation\Rule;
 
 class StoreOrderRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
+        // Si es update (PUT/PATCH), solo validamos status
+        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
+        if ($isUpdate) {
+            return [
+                'status' => ['required', Rule::in(['pending', 'paid', 'shipped', 'delivered'])],
+            ];
+        }
+
+        // Si es create (POST), validamos todo
         return [
-            'status' => ['required', Rule::in(['pending', 'shipped', 'delivered'])],
+            'status' => ['required', Rule::in(['pending', 'paid', 'shipped', 'delivered'])],
             'client_id' => ['required', 'exists:clients,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],

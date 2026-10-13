@@ -33,7 +33,7 @@ class OrderController extends Controller
     )]
     public function index()
     {
-        $orders = Order::where('user_id', Auth::guard('api')->id())
+        $orders = Order::where('user_id', Auth::guard('sanctum')->id())
             ->with(['client', 'items.product'])
             ->get();
 
@@ -82,7 +82,7 @@ class OrderController extends Controller
 
             $order = Order::create([
                 'client_id' => $request->client_id,
-                'user_id' => Auth::guard('api')->id(),
+                'user_id' => Auth::guard('sanctum')->id(),
                 'status' => $request->status,
                 'total' => $total,
             ]);
@@ -155,10 +155,18 @@ class OrderController extends Controller
     {
         $this->authorizeOwnership($order);
 
-        $order->update([
-            'client_id' => $request->client_id,
-            'status' => $request->status,
-        ]);
+        // Solo actualizamos lo que venga en el request
+        $data = [];
+
+        if ($request->has('status')) {
+            $data['status'] = $request->validated('status');
+        }
+
+        if ($request->has('client_id')) {
+            $data['client_id'] = $request->validated('client_id');
+        }
+
+        $order->update($data);
 
         return new OrderResource($order->load(['client', 'items.product']));
     }
@@ -191,7 +199,7 @@ class OrderController extends Controller
      */
     private function authorizeOwnership(Order $order): void
     {
-        if ($order->user_id !== Auth::guard('api')->id()) {
+        if ($order->user_id !== Auth::guard('sanctum')->id()) {
             throw new NotFoundHttpException('No query results for model [App\\Models\\Order].');
         }
     }
