@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use App\Models\User;
 
@@ -35,16 +35,14 @@ return [
     |
     | Supported: "session"
     |
+    | Nota: La autenticación de la API usa Sanctum (config/sanctum.php).
+    | 
+    |
     */
 
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'users',
-        ],
-
-        'api' => [
-            'driver' => 'jwt',
             'provider' => 'users',
         ],
     ],
